@@ -1,7 +1,7 @@
 FROM amazoncorretto:25.0.1 AS build
 WORKDIR /app
 COPY . .
-RUN ./gradlew bootJar -x test --no-daemon
+RUN chmod +x gradlew && ./gradlew bootJar -x test --no-daemon
 
 FROM amazoncorretto:25.0.1
 WORKDIR /app
