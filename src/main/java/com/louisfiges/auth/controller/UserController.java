@@ -59,15 +59,15 @@ public class UserController {
         LoginResult result = userService.verifyMfa(
                 request.mfaToken(),
                 request.code(),
-                request.deviceFingerprint(),  // Add this
-                request.trustDevice()          // Add this
+                request.deviceFingerprint(),
+                request.trustDevice()
         );
 
         return switch (result) {
             case LoginResult.Success success -> ResponseEntity.ok(success.response());
             case LoginResult.Failure failure -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new StringErrorResponse(failure.reason()));
-            case LoginResult.MfaRequired _ -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            case LoginResult.MfaRequired ignore -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new StringErrorResponse("Unexpected state"));
         };
     }

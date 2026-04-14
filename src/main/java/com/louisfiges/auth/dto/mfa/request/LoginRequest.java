@@ -8,7 +8,6 @@ public record LoginRequest(
         String deviceFingerprint,
         Boolean trustDevice  // Nullable Boolean
 ) {
-    // Provide defaults for null values
     public String mfaCode() {
         return mfaCode != null ? mfaCode : "";
     }
@@ -21,7 +20,6 @@ public record LoginRequest(
         return deviceFingerprint != null ? deviceFingerprint : "";
     }
 
-    // Add a helper method with different name
     public boolean shouldTrustDevice() {
         return trustDevice != null && trustDevice;
     }
