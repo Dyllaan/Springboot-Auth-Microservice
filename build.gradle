@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.louisfiges'
-version = '0.2.6-SNAPSHOT'
+version = '1.0.0-RELEASE'
 
 java {
     toolchain {
