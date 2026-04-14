@@ -149,7 +149,7 @@ public class UserController {
                         .body(ResponseFactory.error("Username already exists")));
     }
 
-    // todo tell the workout service to delete user data as well
+    // todo: tell the workout service to delete user data as well
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteUser(
             @RequestHeader("Authorization") String authHeader,
@@ -174,5 +174,18 @@ public class UserController {
                     ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                             .body(new StringErrorResponse(failure.reason()));
         };
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody RefreshRequest request) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(ResponseFactory.error("Missing or invalid authorization header"));
+        }
+
+        userService.logout(authHeader.substring(7), request.refreshToken());
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 }

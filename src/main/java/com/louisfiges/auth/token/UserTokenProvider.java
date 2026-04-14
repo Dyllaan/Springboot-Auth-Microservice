@@ -12,8 +12,8 @@ import java.util.UUID;
 
 @Component
 public class UserTokenProvider extends TokenProvider {
-    private static final int ACCESS_TOKEN_EXP_TIME = 1000 * 60 * 60 * 24;
-    private static final int REFRESH_TOKEN_EXP_TIME = 1000 * 60 * 60 * 24 * 7; // 7 days
+    private static final int ACCESS_TOKEN_EXP_TIME = 1000 * 60 * 15; // 15 minutes
+    private static final long REFRESH_TOKEN_EXP_TIME = 1000L * 60 * 60 * 24 * 28; // 28 days
 
     public UserTokenProvider() {
         super("SECRET_KEY");

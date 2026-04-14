@@ -28,29 +28,29 @@ public abstract class TokenProvider {
         this.signingKey = KeyLoader.loadKeyFromEnv(envVarName);
     }
 
-    protected String generate(UUID id, int expirationTime) {
+    protected String generate(UUID id, long expirationTime) {
         return Jwts.builder()
                 .setSubject(String.valueOf(id))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    protected String generate(UUID id, String username, int expirationTime) {
+    protected String generate(UUID id, String username, long expirationTime) {
         return Jwts.builder()
                 .setSubject(String.valueOf(id))
                 .claim("username", username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public Optional<UUID> validateAndGetUserId(String token) {
         try {
             Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(signingKey)
+                    .setSigningKey(getSigningKey())
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
@@ -66,5 +66,24 @@ public abstract class TokenProvider {
             logger.error("Invalid token: {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    public Optional<Long> getRemainingExpiry(String token) {
+        try {
+            Date expiry = Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getExpiration();
+            long remaining = expiry.getTime() - System.currentTimeMillis();
+            return remaining > 0 ? Optional.of(remaining) : Optional.empty();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public Key getSigningKey() {
+        return signingKey;
     }
 }

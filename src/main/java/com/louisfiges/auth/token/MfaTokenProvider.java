@@ -13,7 +13,7 @@ import java.util.UUID;
 @Component
 public class MfaTokenProvider extends TokenProvider {
     // 5mins
-    private static final int ACCESS_TOKEN_EXP_TIME = 1000 * 60 * 5;
+    private static final long ACCESS_TOKEN_EXP_TIME = 1000L * 60 * 5; // 5 minutes
 
     public MfaTokenProvider() {
         super("TEMP_MFA_SECRET_KEY");

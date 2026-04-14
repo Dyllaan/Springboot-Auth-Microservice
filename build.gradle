@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.louisfiges'
-version = '1.0.0-RELEASE'
+version = '1.0.1-RELEASE'
 
 java {
     toolchain {
@@ -32,6 +32,7 @@ dependencies {
     implementation 'io.github.cdimascio:dotenv-java:3.1.0'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'dev.samstevens.totp:totp:1.7.1'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     // health checks
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'

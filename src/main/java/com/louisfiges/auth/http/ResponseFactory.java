@@ -16,6 +16,10 @@ public class ResponseFactory {
         );
     }
 
+    public static LoginResult expiredTokenResponse() {
+        return new LoginResult.Failure("Token has expired, please re-login.");
+    }
+
     public static StringErrorResponse error(String cause) {
         return new StringErrorResponse(cause);
     }

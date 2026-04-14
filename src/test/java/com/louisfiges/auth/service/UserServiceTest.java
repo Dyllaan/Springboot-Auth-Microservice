@@ -10,6 +10,7 @@ import com.louisfiges.auth.dto.response.UpdatePasswordResult;
 import com.louisfiges.auth.http.exceptions.MfaValidationException;
 import com.louisfiges.auth.repo.UserRepository;
 import com.louisfiges.auth.token.MfaTokenProvider;
+import com.louisfiges.auth.token.TokenDenyList;
 import com.louisfiges.auth.token.UserTokenProvider;
 import dev.samstevens.totp.exceptions.QrGenerationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +64,9 @@ class UserServiceTest {
 
     @Captor
     private ArgumentCaptor<UserDAO> userCaptor;
+
+    @Mock
+    private TokenDenyList tokenDenyList;
 
     private UserDAO testUser;
     private static final String USERNAME = "testuser";
@@ -491,16 +495,14 @@ class UserServiceTest {
         @Test
         @DisplayName("Should refresh token successfully")
         void shouldRefreshTokenSuccessfully() {
-            // Given
+            when(tokenDenyList.isRevoked(REFRESH_TOKEN)).thenReturn(false);
             when(userTokenProvider.validateAndGetUserId(REFRESH_TOKEN)).thenReturn(Optional.of(USER_ID));
             when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
             when(userTokenProvider.generateAccessToken(USER_ID, USERNAME)).thenReturn(ACCESS_TOKEN);
             when(userTokenProvider.generateRefreshToken(USER_ID, USERNAME)).thenReturn(REFRESH_TOKEN);
 
-            // When
             Optional<LoginResult> result = userService.refreshToken(REFRESH_TOKEN);
 
-            // Then
             assertThat(result).isPresent();
             assertThat(result.get()).isInstanceOf(LoginResult.Success.class);
             verify(userTokenProvider).validateAndGetUserId(REFRESH_TOKEN);
@@ -509,14 +511,25 @@ class UserServiceTest {
         @Test
         @DisplayName("Should fail with invalid refresh token")
         void shouldFailWithInvalidRefreshToken() {
-            // Given
+            when(tokenDenyList.isRevoked(REFRESH_TOKEN)).thenReturn(false);
             when(userTokenProvider.validateAndGetUserId(REFRESH_TOKEN)).thenReturn(Optional.empty());
 
-            // When
             Optional<LoginResult> result = userService.refreshToken(REFRESH_TOKEN);
 
-            // Then
             assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should reject revoked refresh token")
+        void shouldRejectRevokedRefreshToken() {
+            when(tokenDenyList.isRevoked(REFRESH_TOKEN)).thenReturn(true);
+
+            Optional<LoginResult> result = userService.refreshToken(REFRESH_TOKEN);
+
+            assertThat(result).isPresent();
+            assertThat(result.get()).isInstanceOf(LoginResult.Failure.class);
+            assertThat(((LoginResult.Failure) result.get()).reason()).isEqualTo("Token has expired, please re-login.");
+            verify(userTokenProvider, never()).validateAndGetUserId(any());
         }
     }
 

@@ -1,6 +1,6 @@
 package com.louisfiges.auth.util;
 
-import com.louisfiges.auth.token.TokenProvider;
+import com.louisfiges.auth.token.TokenDenyList;
 import com.louisfiges.auth.token.UserTokenProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -25,11 +25,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final UserService userService;
     private final UserTokenProvider userTokenProvider;
+    private final TokenDenyList tokenDenyList;
     private final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    public JwtAuthenticationFilter(UserService userService, UserTokenProvider userTokenProvider) {
+    public JwtAuthenticationFilter(UserService userService, UserTokenProvider userTokenProvider, TokenDenyList tokenDenyList) {
         this.userService = userService;
         this.userTokenProvider = userTokenProvider;
+        this.tokenDenyList = tokenDenyList;
     }
 
     private static final List<String> PUBLIC_PATHS = Arrays.asList(
@@ -44,23 +46,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         logger.info("Filter processing request to: {}", path);
 
-        // Skip JWT validation for public endpoints
         if (PUBLIC_PATHS.contains(path)) {
-            logger.info("Skipping JWT validation for public path: {}", path);
             filterChain.doFilter(request, response);
             return;
         }
 
         String authHeader = request.getHeader("Authorization");
-        logger.info("Authorization header present: {}", authHeader != null);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String jwt = authHeader.substring(7);
 
+            if (tokenDenyList.isRevoked(jwt)) {
+                logger.warn("Revoked token used on: {}", path);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             userTokenProvider.validateAndGetUserId(jwt)
                     .ifPresentOrElse(
                             userId -> {
-                                logger.info("Valid token for userId: {}", userId);
                                 if (SecurityContextHolder.getContext().getAuthentication() == null) {
                                     userService.getUserFromToken(jwt).ifPresent(userDAO -> {
                                         UsernamePasswordAuthenticationToken authenticationToken =

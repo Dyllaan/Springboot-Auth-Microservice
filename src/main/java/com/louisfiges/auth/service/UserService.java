@@ -11,6 +11,7 @@ import com.louisfiges.auth.http.ResponseFactory;
 import com.louisfiges.auth.http.exceptions.MfaValidationException;
 import com.louisfiges.auth.repo.UserRepository;
 import com.louisfiges.auth.token.MfaTokenProvider;
+import com.louisfiges.auth.token.TokenDenyList;
 import com.louisfiges.auth.token.UserTokenProvider;
 import dev.samstevens.totp.exceptions.QrGenerationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.ResourceBundle;
 
 @Service
 public class UserService {
@@ -31,8 +33,9 @@ public class UserService {
     private final TotpService totpService;
     private final BackupCodeService backupCodeService;
     private final TrustedDeviceService trustedDeviceService;
+    private final TokenDenyList tokenDenyList;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserTokenProvider userTokenProvider, MfaTokenProvider mfaTokenProvider, TotpService totpService, BackupCodeService backupCodeService, TrustedDeviceService trustedDeviceService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserTokenProvider userTokenProvider, MfaTokenProvider mfaTokenProvider, TotpService totpService, BackupCodeService backupCodeService, TrustedDeviceService trustedDeviceService, TokenDenyList tokenDenyList) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userTokenProvider = userTokenProvider;
@@ -40,6 +43,7 @@ public class UserService {
         this.totpService = totpService;
         this.backupCodeService = backupCodeService;
         this.trustedDeviceService = trustedDeviceService;
+        this.tokenDenyList = tokenDenyList;
     }
 
     public LoginResult login(String username, String password, String mfaCode,
@@ -170,6 +174,7 @@ public class UserService {
     }
 
     public Optional<LoginResult> refreshToken(String refreshToken) {
+        if (tokenDenyList.isRevoked(refreshToken)) return Optional.of(ResponseFactory.expiredTokenResponse());
         return userTokenProvider.validateAndGetUserId(refreshToken)
                 .flatMap(userRepository::findById)
                 .map(user -> ResponseFactory.loginResponse(
@@ -342,5 +347,12 @@ public class UserService {
 
         userRepository.delete(user);
         return new DeleteResult.Success("User deleted successfully");
+    }
+
+    public void logout(String accessToken, String refreshToken) {
+        userTokenProvider.getRemainingExpiry(accessToken)
+                .ifPresent(ms -> tokenDenyList.revoke(accessToken, ms));
+        userTokenProvider.getRemainingExpiry(refreshToken)
+                .ifPresent(ms -> tokenDenyList.revoke(refreshToken, ms));
     }
 }
